@@ -56,6 +56,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
     const [aiChatContext, setAiChatContext] = useState<InjuryReport | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
+    const [retryData, setRetryData] = useState<{ description: string; images: { data: string; mimeType: string }[] | null } | null>(null);
     
 
     useEffect(() => {
@@ -94,18 +95,26 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
         setIsLoading(true);
         setError(null);
         setCurrentReport(null);
+        setRetryData({ description, images }); // Save data for potential retry
         try {
             const plan = await generateRecoveryPlan(description, images);
             const newReport = await addReport(plan, description, user);
             setCurrentReport(newReport);
             showToast(`New report generated!`, 'info');
             setView('VIEW_REPORT');
+            setRetryData(null); // Clear retry data on success
         } catch (err: any) {
             setError(err.message);
         } finally {
             setIsLoading(false);
         }
     }, [user]);
+
+    const handleRetry = useCallback(() => {
+        if (retryData) {
+            handleFormSubmit(retryData.description, retryData.images);
+        }
+    }, [retryData, handleFormSubmit]);
 
     const handleViewReport = useCallback((report: InjuryReport) => {
         setCurrentReport(report);
@@ -167,7 +176,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onLogout, onUpdateU
                 </div>
                 
                 {isLoading && <LoadingSpinner />}
-                {error && <ErrorMessage message={error} />}
+                {error && <ErrorMessage message={error} onRetry={handleRetry} />}
 
                 <div className="w-full pt-8 mt-8 border-t border-white/10">
                      <h2 className="text-2xl font-bold text-white mb-6">Your Report History</h2>

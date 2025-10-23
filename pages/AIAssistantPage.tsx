@@ -190,7 +190,7 @@ const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ user, injuryContext, 
     const saveButtonText = activeChatId ? "Update Chat" : "Save Chat";
 
     return (
-        <div className="w-full max-w-6xl mx-auto flex h-[calc(100vh-200px)] bg-white/5 backdrop-blur-md rounded-2xl shadow-2xl border border-white/10 opacity-0 animate-fade-in-up overflow-hidden">
+        <div className="w-full max-w-6xl mx-auto flex h-[85vh] min-h-[650px] bg-white/5 backdrop-blur-md rounded-2xl shadow-2xl border border-white/10 opacity-0 animate-fade-in-up overflow-hidden">
             {/* Sidebar */}
             <div className="w-1/3 border-r border-white/10 flex flex-col">
                 <div className="p-4 border-b border-white/10">
@@ -263,3 +263,4 @@ const AIAssistantPage: React.FC<AIAssistantPageProps> = ({ user, injuryContext, 
         </div>
     );
 };
+export default AIAssistantPage;

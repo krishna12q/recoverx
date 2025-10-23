@@ -49,13 +49,13 @@ const recoveryPlanSchema = {
     required: ['injury', 'summary', 'disclaimer', 'estimated_recovery_time', 'phases']
 };
 
-const CONFIGURATION_ERROR_MESSAGE = `The AI service is not configured correctly. This is a deployment issue.
+const CONFIGURATION_ERROR_MESSAGE = `The AI service is not configured correctly. This usually means the \`VITE_API_KEY\` environment variable is missing or incorrect in your deployment settings. Please check your hosting provider's configuration.
 
-**Final Fix for Manual Uploads:**
-1. In your project folder, find or create a file named exactly \`.env.local\`.
-2. Add this one line to the file, pasting your secret key: \`VITE_API_KEY=YOUR_SECRET_KEY_HERE\`
-3. Open a terminal in your project folder and run the command: \`npm run build\`
-4. A new folder named \`dist\` will be created. **This is the folder you must drag and drop into Netlify.**`;
+**For Manual Uploads (like Netlify Drop):**
+1.  In your project folder, create a file named exactly \`.env.local\`.
+2.  Add your secret key on one line: \`VITE_API_KEY=YOUR_SECRET_KEY_HERE\`
+3.  Run the command: \`npm run build\`
+4.  Upload the new \`dist\` folder that is created.`;
 
 
 // Centralized AI client creation and API key check. Returns null if key is not found.
@@ -70,6 +70,9 @@ const getAiClient = (): GoogleGenAI | null => {
     return new GoogleGenAI({ apiKey: API_KEY });
 };
 
+// Helper function for delay
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 
 export const generateRecoveryPlan = async (description: string, images: { data: string; mimeType: string }[] | null): Promise<RecoveryPlan> => {
     const ai = getAiClient();
@@ -77,38 +80,58 @@ export const generateRecoveryPlan = async (description: string, images: { data: 
         throw new Error(CONFIGURATION_ERROR_MESSAGE);
     }
 
-    try {
-        const prompt = `Analyze the following user-described sports injury and generate a detailed, phased recovery plan. The injury is: "${description}"`;
+    const MAX_RETRIES = 2;
+    let attempt = 0;
 
-        const textPart: Part = { text: prompt };
-        const imageParts: Part[] = (images || []).map(image => ({
-            inlineData: {
-                data: image.data,
-                mimeType: image.mimeType,
-            },
-        }));
+    while (attempt <= MAX_RETRIES) {
+        try {
+            const prompt = `Analyze the following user-described sports injury and generate a detailed, phased recovery plan. The injury is: "${description}"`;
 
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: { parts: [...imageParts, textPart] },
-            config: {
-                systemInstruction: "You are an expert AI sports physiotherapist. Your goal is to create safe, effective, and easy-to-understand recovery plans. You must always include a strong disclaimer to consult a real medical professional. The plan must be structured in JSON format. When appropriate for very common, minor injuries like a simple sprain, you can suggest general categories of over-the-counter pain management (e.g., 'NSAIDs like ibuprofen for pain and inflammation'). You MUST always follow this with a direct instruction to consult a pharmacist or doctor. Do not list brand names. If the injury seems complex or severe, or if you are in any doubt, do not provide any medication suggestions.",
-                responseMimeType: "application/json",
-                responseSchema: recoveryPlanSchema,
-            },
-        });
+            const textPart: Part = { text: prompt };
+            const imageParts: Part[] = (images || []).map(image => ({
+                inlineData: {
+                    data: image.data,
+                    mimeType: image.mimeType,
+                },
+            }));
 
-        const jsonText = response.text.trim();
-        // The API sometimes returns the JSON wrapped in markdown backticks, so we clean it.
-        const cleanedJsonText = jsonText.replace(/^```json\s*|```$/g, '');
-        const plan = JSON.parse(cleanedJsonText);
-        
-        return plan as RecoveryPlan;
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: { parts: [...imageParts, textPart] },
+                config: {
+                    systemInstruction: "You are an expert AI sports physiotherapist. Your goal is to create safe, effective, and easy-to-understand recovery plans. You must always include a strong disclaimer to consult a real medical professional. The plan must be structured in JSON format. When appropriate for very common, minor injuries like a simple sprain, you can suggest general categories of over-the-counter pain management (e.g., 'NSAIDs like ibuprofen for pain and inflammation'). You MUST always follow this with a direct instruction to consult a pharmacist or doctor. Do not list brand names. If the injury seems complex or severe, or if you are in any doubt, do not provide any medication suggestions.",
+                    responseMimeType: "application/json",
+                    responseSchema: recoveryPlanSchema,
+                },
+            });
 
-    } catch (error) {
-        console.error("Error during AI model call in generateRecoveryPlan:", error);
-        throw new Error("Failed to generate recovery plan. The AI model may be temporarily unavailable.");
+            const jsonText = response.text.trim();
+            // The API sometimes returns the JSON wrapped in markdown backticks, so we clean it.
+            const cleanedJsonText = jsonText.replace(/^```json\s*|```$/g, '');
+            const plan = JSON.parse(cleanedJsonText);
+            
+            return plan as RecoveryPlan;
+
+        } catch (error: any) {
+            console.error(`Attempt ${attempt + 1} failed for generateRecoveryPlan:`, error);
+            
+            // Check if it's a retriable error (e.g., 503 Service Unavailable / overloaded)
+            const isRetriable = error.message && (error.message.includes('503') || error.message.toLowerCase().includes('unavailable') || error.message.toLowerCase().includes('overloaded'));
+            
+            if (isRetriable && attempt < MAX_RETRIES) {
+                const waitTime = 2000 * (attempt + 1); // 2s, 4s
+                console.log(`Model is busy. Retrying in ${waitTime / 1000} seconds...`);
+                await delay(waitTime);
+                attempt++;
+            } else {
+                // Not a retriable error or max retries reached, throw the final error.
+                console.error("Error during AI model call in generateRecoveryPlan (final attempt):", error);
+                throw new Error("Failed to generate recovery plan. The AI model may be temporarily unavailable.");
+            }
+        }
     }
+     // This part should not be reachable, but is a fallback.
+    throw new Error("Failed to generate recovery plan after multiple retries.");
 };
 
 export const generateChatStream = (history: ChatMessage[]) => {
