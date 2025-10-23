@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RecoverX: AI Sports Injury Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        --color-brand-dark: #0D0B14;
+        --color-brand-secondary-dark: #1F1C2C;
+        --color-brand-light: #F0EFFF;
+        --color-brand-accent: #7C3AED;
+        --color-brand-accent-dark: #6D28D9;
+      }
+    </style>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+            colors: {
+              'brand-dark': 'var(--color-brand-dark)',
+              'brand-secondary-dark': 'var(--color-brand-secondary-dark)',
+              'brand-light': 'var(--color-brand-light)',
+              'brand-accent': 'var(--color-brand-accent)',
+              'brand-accent-dark': 'var(--color-brand-accent-dark)',
+            },
+            keyframes: {
+              fadeInUp: {
+                '0%': { opacity: '0', transform: 'translateY(20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+               pulse: {
+                '0%, 100%': { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(124, 58, 237, 0.4)' },
+                '50%': { transform: 'scale(1.03)', boxShadow: '0 0 20px 10px rgba(124, 58, 237, 0)' },
+              },
+              toastIn: {
+                '0%': { opacity: '0', transform: 'translateX(100%)' },
+                '100%': { opacity: '1', transform: 'translateX(0)' },
+              },
+            },
+            animation: {
+              'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
+              'slow-pulse': 'pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'toast-in': 'toastIn 0.5s ease-out forwards',
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.21.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-brand-dark font-sans transition-colors duration-500">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
